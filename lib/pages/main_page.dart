@@ -3,6 +3,7 @@ import 'package:calendar_appbar/calendar_appbar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:monvest/pages/category_page.dart';
 import 'package:monvest/pages/home_page.dart';
+import 'package:monvest/pages/transaction_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -35,18 +36,27 @@ class _MainPageState extends State<MainPage> {
                 selectedDate: DateTime.now(),
               )
             : PreferredSize(
-                child: Container(child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 50.0, horizontal: 16.0),
-                  child: Text("Category" 
-                  ,style: GoogleFonts.montserrat(
-                  fontSize: 20, fontWeight: FontWeight.bold),), 
-                   
+                child: Container(
+                    child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 50.0, horizontal: 16.0),
+                  child: Text(
+                    "Category",
+                    style: GoogleFonts.montserrat(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                 )),
                 preferredSize: Size.fromHeight(100)),
         floatingActionButton: Visibility(
           visible: currentIndex == 0 ? true : false,
           child: FloatingActionButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context)
+                  .push(MaterialPageRoute(
+                    builder: (context) => TransactionPage(),
+                  ))
+                  .then((value) => setState(() {}));
+            },
             backgroundColor: Colors.deepPurple[900],
             shape: const CircleBorder(),
             child: Icon(
