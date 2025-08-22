@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:monvest/models/category.dart';
 import 'package:monvest/models/transaction.dart';
+import 'package:monvest/models/transaction_with_category.dart';
 import 'package:path_provider/path_provider.dart';
 
 part 'database.g.dart';
@@ -13,7 +14,7 @@ class TodoItems extends Table {
   DateTimeColumn get createdAt => dateTime().nullable()();
 }
 
-@DriftDatabase(tables: [Categories,Transactions])
+@DriftDatabase(tables: [Categories, Transactions])
 class AppDatabase extends _$AppDatabase {
   // After generating code, this class needs to define a `schemaVersion` getter
   // and a constructor telling drift where the database should be stored.
@@ -23,18 +24,34 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
-
   //crude category
   Future<List<Category>> getAllCategoriesRepo(int type) async {
-    return await (select(categories)..where((tbl) => tbl.type.equals(type))).get();
+    return await (select(categories)..where((tbl) => tbl.type.equals(type)))
+        .get();
   }
 
   Future updateCategoriesRepo(int id, String name) async {
-    return await (update(categories)..where((tbl) => tbl.id.equals(id))).write(CategoriesCompanion(name:Value(name)));
+    return await (update(categories)..where((tbl) => tbl.id.equals(id)))
+        .write(CategoriesCompanion(name: Value(name)));
   }
 
   Future deleteCategoriesRepo(int id) async {
     return await (delete(categories)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  //transactions
+  Stream<List<TransactionWithCategory>> getTransactionByDate(DateTime date) {
+    final query = (select(transactions).join([
+      innerJoin(categories, categories.id.equalsExp(transactions.category_id))
+    ])
+      ..where(transactions.transaction_date.equals(date)));
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return TransactionWithCategory(
+            row.readTable(transactions), row.readTable(categories));
+      }).toList();
+    });
   }
 
   static QueryExecutor _openConnection() {

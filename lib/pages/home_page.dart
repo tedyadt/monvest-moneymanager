@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:monvest/models/transaction_with_category.dart';
+import 'package:monvest/models/database.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final DateTime selectedDate;
+  const HomePage({Key? key, required this.selectedDate}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  final database = AppDatabase();
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -90,6 +94,59 @@ class _HomePageState extends State<HomePage> {
               style: GoogleFonts.montserrat(
                   fontSize: 20, fontWeight: FontWeight.bold),
             ),
+          ),
+          StreamBuilder<List<TransactionWithCategory>>(
+            stream: database.getTransactionByDate(widget.selectedDate),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else {
+                if (snapshot.hasData) {
+                  if (snapshot.data!.length > 0) {
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: snapshot.data!.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Card(
+                            elevation: 6,
+                            child: ListTile(
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.edit),
+                                  SizedBox(width: 6),
+                                  Icon(Icons.delete),
+                                ],
+                              ),
+                              title: Text('Rp.' +
+                                  snapshot.data![index].transaction.amount
+                                      .toString()),
+                              subtitle: Text(
+                                  snapshot.data![index].category.name +
+                                      '(' +
+                                      snapshot.data![index].transaction.name +
+                                      ')'),
+                              leading: Container(
+                                child: Icon(Icons.download, color: Colors.blue),
+                                decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(6)),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  } else {
+                    return Center(child: Text("No transaction found"));
+                  }
+                } else {
+                  return Center(child: Text("No data"));
+                }
+              }
+            },
           ),
           // list transaksi
           Padding(
