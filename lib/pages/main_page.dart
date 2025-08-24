@@ -17,12 +17,12 @@ class _MainPageState extends State<MainPage> {
   late DateTime selectedDate;
   late List<Widget> _children;
   late int currentIndex;
+  int _refreshKey = 0; // Tambahkan key untuk memicu rebuild HomePage
 
   @override
   void initState() {
-    // TODO: implement initState
-    updateView(0, DateTime.now());
     super.initState();
+    updateView(0, DateTime.now());
   }
 
   void updateView(int index, DateTime? date) {
@@ -33,6 +33,7 @@ class _MainPageState extends State<MainPage> {
       currentIndex = index;
       _children = [
         HomePage(
+          key: ValueKey(_refreshKey), // Tambahkan key untuk HomePage
           selectedDate: selectedDate,
         ),
         CategoryPage()
@@ -40,27 +41,34 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  void refreshHomePage() {
+    setState(() {
+      _refreshKey++; // Increment key untuk memicu rebuild HomePage
+      updateView(currentIndex, selectedDate);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: (currentIndex == 0)
-            ? CalendarAppBar(
-                accent: Colors.deepPurple[900],
-                backButton: false,
-                locale: 'id',
-                onDateChanged: (value) {
-                  setState(() {
-                    selectedDate = value;
-                    updateView(0, selectedDate);
-                  });
-                },
-                firstDate: DateTime.now().subtract(Duration(days: 140)),
-                lastDate: DateTime.now(),
-                selectedDate: DateTime.now(),
-              )
-            : PreferredSize(
-                child: Container(
-                    child: Padding(
+      appBar: (currentIndex == 0)
+          ? CalendarAppBar(
+              accent: Colors.deepPurple[900],
+              backButton: false,
+              locale: 'id',
+              onDateChanged: (value) {
+                setState(() {
+                  selectedDate = value;
+                  updateView(0, selectedDate);
+                });
+              },
+              firstDate: DateTime.now().subtract(Duration(days: 140)),
+              lastDate: DateTime.now(),
+              selectedDate: selectedDate, // Gunakan selectedDate
+            )
+          : PreferredSize(
+              child: Container(
+                child: Padding(
                   padding: const EdgeInsets.symmetric(
                       vertical: 50.0, horizontal: 16.0),
                   child: Text(
@@ -68,46 +76,57 @@ class _MainPageState extends State<MainPage> {
                     style: GoogleFonts.montserrat(
                         fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                )),
-                preferredSize: Size.fromHeight(100)),
-        floatingActionButton: Visibility(
-          visible: currentIndex == 0 ? true : false,
-          child: FloatingActionButton(
-            onPressed: () {
-              Navigator.of(context)
-                  .push(MaterialPageRoute(
-                    builder: (context) => TransactionPage(),
-                  ))
-                  .then((value) => setState(() {}));
-            },
-            backgroundColor: Colors.deepPurple[900],
-            shape: const CircleBorder(),
-            child: Icon(
-              Icons.add,
-              color: Colors.white,
+                ),
+              ),
+              preferredSize: Size.fromHeight(100),
             ),
+      floatingActionButton: Visibility(
+        visible: currentIndex == 0 ? true : false,
+        child: FloatingActionButton(
+          onPressed: () async {
+            final result = await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => TransactionPage(
+                  transactionWithCategory: null,
+                  selectedDate: selectedDate,
+                ),
+              ),
+            );
+
+            if (result == true) {
+              refreshHomePage(); // Panggil refresh setelah insert/update
+            }
+          },
+          backgroundColor: Colors.deepPurple[900],
+          shape: const CircleBorder(),
+          child: Icon(
+            Icons.add,
+            color: Colors.white,
           ),
         ),
-        body: _children[currentIndex],
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        bottomNavigationBar: BottomAppBar(
-          child:
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
             IconButton(
               onPressed: () {
-                updateView(0, DateTime.now());
+                updateView(0, selectedDate); // Gunakan selectedDate saat ini
               },
               icon: Icon(Icons.home),
             ),
-            SizedBox(
-              width: 30,
-            ),
+            SizedBox(width: 30),
             IconButton(
-                onPressed: () {
-                  updateView(1, null);
-                },
-                icon: Icon(Icons.list))
-          ]),
-        ));
+              onPressed: () {
+                updateView(1, null);
+              },
+              icon: Icon(Icons.list),
+            ),
+          ],
+        ),
+      ),
+      body: _children[currentIndex],
+    );
   }
 }

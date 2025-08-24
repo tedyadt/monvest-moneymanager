@@ -41,18 +41,77 @@ class AppDatabase extends _$AppDatabase {
 
   //transactions
   Stream<List<TransactionWithCategory>> getTransactionByDate(DateTime date) {
+  final start = DateTime(date.year, date.month, date.day);
+  final end = start.add(Duration(days: 1));
+
+  final query = (select(transactions).join([
+    innerJoin(categories, categories.id.equalsExp(transactions.category_id))
+  ])
+    ..where(transactions.transaction_date.isBiggerOrEqualValue(start))
+    ..where(transactions.transaction_date.isSmallerThanValue(end)));
+
+  return query.watch().map((rows) {
+    return rows.map((row) {
+      return TransactionWithCategory(
+        row.readTable(transactions),
+        row.readTable(categories),
+      );
+    }).toList();
+  });
+}
+
+
+  Future updateTransactionRepo(int id, int amount, int categoryid,
+      DateTime transactiondate, String description) async {
+    return await (update(transactions)..where((tbl) => tbl.id.equals(id)))
+        .write(TransactionsCompanion(
+      amount: Value(amount),
+      name: Value(description),
+      category_id: Value(categoryid),
+      transaction_date: Value(transactiondate),
+      updatedAt: Value(DateTime.now()),
+    
+    ));
+
+  }
+
+  Future deleteTransactionRepo(int id) async {
+    return await (delete(transactions)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Stream<Map<String, int>> getMonthlySummary(DateTime date) {
+    final firstDay = DateTime(date.year, date.month, 1);
+    final lastDay = DateTime(date.year, date.month + 1, 0);
+
     final query = (select(transactions).join([
       innerJoin(categories, categories.id.equalsExp(transactions.category_id))
     ])
-      ..where(transactions.transaction_date.equals(date)));
+      ..where(transactions.transaction_date.isBiggerOrEqualValue(firstDay) &
+          transactions.transaction_date.isSmallerOrEqualValue(lastDay)));
 
     return query.watch().map((rows) {
-      return rows.map((row) {
-        return TransactionWithCategory(
-            row.readTable(transactions), row.readTable(categories));
-      }).toList();
+      int totalIncome = 0;
+      int totalOutcome = 0;
+
+      for (var row in rows) {
+        final transaction = row.readTable(transactions);
+        final category = row.readTable(categories);
+
+        if (category.type == 1) {
+          totalIncome += transaction.amount;
+        } else if (category.type == 2) {
+          totalOutcome += transaction.amount;
+        }
+      }
+
+      return {
+        "income": totalIncome,
+        "outcome": totalOutcome,
+      };
     });
   }
+
+  
 
   static QueryExecutor _openConnection() {
     return driftDatabase(

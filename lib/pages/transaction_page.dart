@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:monvest/models/database.dart';
+import 'package:monvest/models/transaction_with_category.dart';
 
 class TransactionPage extends StatefulWidget {
-  const TransactionPage({super.key});
+  final TransactionWithCategory? transactionWithCategory;
+  const TransactionPage({Key? key, required this.transactionWithCategory, required DateTime selectedDate})
+      : super(key: key);
 
   @override
   State<TransactionPage> createState() => _TransactionPageState();
@@ -33,15 +36,40 @@ class _TransactionPageState extends State<TransactionPage> {
             category_id: categoryid,
             createdAt: now,
             updatedAt: now));
+    print("Inserted transaction: $row");
+    return row;
   }
 
   Future<List<Category>> getAllCategories() async {
     return await database.getAllCategoriesRepo(isExpense ? 2 : 1);
   }
 
+  Future update(int transactionid, int amount, int categoryid,
+      DateTime transactiondate, String descriptionname) async {
+    return await database.updateTransactionRepo(
+        transactionid, amount, categoryid, transactiondate, descriptionname);
+                
+  }
+
   @override
   void initState() {
+    super.initState();
+    if (widget.transactionWithCategory != null) {
+      updateTransactionView(widget.transactionWithCategory!);
+    } else {
+      dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    }
     type = 2;
+  }
+
+  void updateTransactionView(TransactionWithCategory transaction) {
+    amountController.text = transaction.transaction.amount.toString();
+    dateController.text = DateFormat('yyyy-MM-dd')
+        .format(transaction.transaction.transaction_date);
+    descriptionController.text = transaction.transaction.name;
+    type = transaction.category.type;
+    (type == 2) ? isExpense = true : isExpense = false;
+    selectedCategory = transaction.category;
   }
 
   Widget build(BuildContext context) {
@@ -113,7 +141,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   } else {
                     if (snapshot.hasData) {
                       if (snapshot.data!.length > 0) {
-                        print('apa'+snapshot.toString());
+                        print('apa' + snapshot.toString());
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: DropdownButton<Category>(
@@ -169,13 +197,22 @@ class _TransactionPageState extends State<TransactionPage> {
             SizedBox(height: 16),
             Center(
                 child: ElevatedButton(
-                    onPressed: () {
-                      insert(
-                          int.parse(amountController.text),
-                          DateTime.parse(dateController.text),
-                          descriptionController.text,
-                          selectedCategory!.id);
-                          Navigator.pop(context,true);
+                    onPressed: () async {
+                      (widget.transactionWithCategory == null)
+                          ? await insert(
+                              int.parse(amountController.text),
+                              DateTime.parse(dateController.text),
+                              descriptionController.text,
+                              selectedCategory!.id)
+                          : await update(
+                              widget.transactionWithCategory!.transaction.id,
+                              int.parse(amountController.text),
+                              selectedCategory!.id,
+                              DateTime.parse(dateController.text),
+                              descriptionController.text);
+                        print("Transaction date used: ${dateController.text}");
+
+                      Navigator.pop(context, true);
                     },
                     child: Text("Save")))
           ],
