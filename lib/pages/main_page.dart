@@ -48,6 +48,19 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Selamat Pagi';
+    } else if (hour < 15) {
+      return 'Selamat Siang';
+    } else if (hour < 18) {
+      return 'Selamat Sore';
+    } else {
+      return 'Selamat Malam';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,6 +68,7 @@ class _MainPageState extends State<MainPage> {
           ? CalendarAppBar(
               accent: Colors.deepPurple[900],
               backButton: false,
+              
               locale: 'id',
               onDateChanged: (value) {
                 setState(() {

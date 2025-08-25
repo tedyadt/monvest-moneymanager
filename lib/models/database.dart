@@ -30,6 +30,8 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
+  
+
   Future updateCategoriesRepo(int id, String name) async {
     return await (update(categories)..where((tbl) => tbl.id.equals(id)))
         .write(CategoriesCompanion(name: Value(name)));
@@ -125,3 +127,5 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 }
+
+
